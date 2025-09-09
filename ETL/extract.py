@@ -28,24 +28,3 @@ def extract_swiss_stops_csv(input_path: str, output_path: str, provider_name: st
     swiss_stops_df['provider'] = provider_name
     swiss_stops_df.to_csv(output_path, index=False)
     return swiss_stops_df
-
-# def extract_swiss_stops(df: pd.DataFrame, provider_name: str, stop_lat, stop_long, geojson_path: str = 'RohDaten/swisstopoinspiregeoportal/swiss_landesgebiet.geojson'):
-#     """
-#     Checks which stops from the DataFrame are located within Switzerland according to the geojson.
-#     Returns a DataFrame with only Swiss stops.
-#     """
-#     if not os.path.exists(geojson_path):
-#         raise FileNotFoundError(f"GeoJSON file not found at {geojson_path}")
-#     swiss_landesgebiet = gpd.read_file(geojson_path)
-
-#     if stop_lat not in df.columns or stop_long not in df.columns:
-#         raise ValueError(f"DataFrame must contain '{stop_lat}' and '{stop_long}' columns.")
-
-#     # Erzeuge GeoSeries mit Punkten
-#     points = gpd.GeoSeries([Point(lon, lat) for lat, lon in zip(df[stop_lat], df[stop_long])])
-#     # Prüfe für jeden Punkt, ob er in der Schweiz liegt
-#     mask = points.apply(lambda pt: swiss_landesgebiet.contains(pt).any())
-#     swiss_stops_df = df[mask].copy()
-#     swiss_stops_df['provider'] = provider_name
-#     print("SwissStopsDFHEAD " + swiss_stops_df.head())
-#     return swiss_stops_df
