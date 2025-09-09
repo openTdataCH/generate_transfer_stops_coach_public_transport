@@ -1,0 +1,31 @@
+8799804    Geneva - Bus Station$<1>
+8799805    Geneva - Airport Bus Station$<1>
+8799806    Lausanne$<1>
+8799807    Lugano$<1>
+8799808    Basel$<1>
+8799809    Zürich$<1>
+8799810    Bern$<1>
+8799811    Zurich Airport$<1>
+8799812    Basel Bad Bf (FlixTrain)$<1>
+8799813    Sion (Rue Traversière)$<1>
+8799814    Schaffhausen station$<1>
+8799815    Zug, Chollermüli$<1>
+8799816    Bellinzona (Arbedo- Castione station)$<1>
+8799817    Zurich Airport bus station$<1>
+8799818    Geneva Airport (Bus Station)$<1>
+8799819    Erstfeld Gotthard Service Station South$<1>
+8799820    Luzern, Neuenkirch (service area)$<1>
+8799821    Splügen (Dorf)$<1>
+8799822    Zurich Bus Station$<1>
+8799823    Chur station train station (Bahnhofplatz)$<1>
+8799824    Basel SBB (Meret Oppenheim-Street)$<1>
+8799825    Lugano (Via Ciani)$<1>
+8799826    St. Gallen train station$<1>
+8799827    Lausanne (P+R Vélodrome)$<1>
+8799828    Bern (Neufeld car terminal)$<1>
+8799829    Geneva (central bus station)$<1>
+8799830    Winterthur (Lagerhausstrasse)$<1>
+8799831    Fribourg (Poya)$<1>
+8799832    Martigny$<1>
+8799833    Luzern (Landenberg)$<1>
+8799834    Vaduz (Rheinparkstadion)$<1>
