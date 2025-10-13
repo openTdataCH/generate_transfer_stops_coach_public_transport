@@ -9,10 +9,14 @@ Main steps:
 2. Transform: clean, filter, and deduplicate
 3. Load: save to output formats
 """
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from extract import extract_swiss_stops_csv
 from transform import drop_columns, standardize_lat_lon, check_and_add_new_coords
 from load import write_bahnhof_format
+import configuration
 
 
 def process_transport_provider(provider_config):
@@ -44,33 +48,8 @@ def process_transport_provider(provider_config):
 def main():
     """Main ETL execution function."""
 
-    # Define transport providers to process
-    providers = [
-    #     {
-    #         'name': 'Flixbus',
-    #         'input_path': 'RohDaten/Flixbus/stops.txt',
-    #         'output_path': 'Output/Flixbus_stops.csv',
-    #         'columns_to_drop': [
-    #             'stop_desc', 'zone_id', 'stop_url',
-    #             'location_type', 'parent_station',
-    #             'wheelchair_boarding', 'platform_code'
-    #         ],
-    #         'lat': 'stop_lat',
-    #         'lon': 'stop_lon'
-    #     },
-    # Uncomment to process BlaBlaCar as well:
-    {
-        'name': 'BlaBlaCar',
-        'input_path': 'RohDaten/BlaBlaCar/stops.txt',
-        'output_path': 'Output/BlaBlaCar_stops.csv',
-        'columns_to_drop': ['stop_code', 'stop_desc', 'wheelchair_boarding'],
-            'lat': 'stop_lat',
-            'lon': 'stop_lon'
-        }
-    ]
-    
     # Process each provider
-    for provider in providers:
+    for provider in configuration.providers:
         try:
             process_transport_provider(provider)
         except Exception as e:

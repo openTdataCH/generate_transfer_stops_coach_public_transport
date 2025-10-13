@@ -66,7 +66,8 @@ def check_and_add_new_coords(df, transportProvider: str):
                         continue
 
     # Find the highest ID from both files
-    max_id = max(max_id_existing, max_id_new)
+    beginning_id = 1700000
+    max_id = beginning_id #max(max_id_existing, max_id_new)
 
     # Process coordinates from current transport provider
     to_add = []
