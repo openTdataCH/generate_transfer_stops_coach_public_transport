@@ -14,7 +14,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from extract import extract_swiss_stops_csv
-from transform import drop_columns, standardize_lat_lon, check_and_add_new_coords
+from transform import drop_columns, standardize_lat_lon, check_and_add_new_coords, convert_bfkoord_to_csv
 from load import write_bahnhof_format
 import configuration
 
@@ -37,6 +37,7 @@ def process_transport_provider(provider_config):
     drop_columns(df, provider_config['columns_to_drop'], provider_config['output_path'])
     df = standardize_lat_lon(df, provider_config['lat'], provider_config['lon'])
     check_and_add_new_coords(df, provider_config['name'])
+    convert_bfkoord_to_csv()
 
     # Load
     print("3. Loading data...")
