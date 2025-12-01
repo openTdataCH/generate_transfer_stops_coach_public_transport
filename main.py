@@ -74,8 +74,8 @@ def main():
     output_files = [
         "data/processed/new_bfkoord_wgs",
         "data/processed/new_bfkoord_wgs_kommagetrennt.csv",
-        "data/processed/delta_bfkoord_wgs",
-        "data/processed/delta_bfkoord_wgs_kommagetrennt.csv",
+        "data/processed/delta/bfkoord_wgs",
+        "data/processed/delta/bfkoord_wgs_kommagetrennt.csv",
         "data/processed/BFKOORD_WGS_kommagetrennt.csv",
         "data/processed/BAHNHOF"
     ]
@@ -103,7 +103,7 @@ def main():
             print(f"❌ Fehler bei Verarbeitung von {provider['name']}: {e}")
             continue
     
-    # Clean delta_bfkoord_wgs (remove FlixTrain and nearby duplicates)
+    # Clean bfkoord_wgs (remove FlixTrain and nearby duplicates)
     print("\n" + "=" * 50)
     print("Bereinige gesammelte Koordinaten...")
     print("=" * 50)

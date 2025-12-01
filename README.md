@@ -23,10 +23,11 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern und ÖV-Referenzd
 │  ├─ external/                     # Externe Referenzdaten
 │  │  └─ swiss_landesgebiet.geojson # Schweizer Landesgrenze
 │  ├─ processed/                    # Verarbeitete Output-Dateien
-│  │  ├─ delta_bfkoord_wgs         # Neue Haltestellen mit IDs
-│  │  ├─ delta_bfkoord_wgs_kommagetrennt.csv
-│  │  ├─ delta_bahnhof_format      # BAHNHOF-Format Output
-│  │  ├─ delta_metabhf.txt         # METABHF ID-Paare (aus QGIS)
+│  │  ├─ delta/                     # Neue/geänderte Daten
+│  │  │  ├─ bfkoord_wgs            # Neue Haltestellen mit IDs
+│  │  │  ├─ bfkoord_wgs_kommagetrennt.csv
+│  │  │  ├─ bahnhof_format         # BAHNHOF-Format Output
+│  │  │  └─ metabhf.txt            # METABHF ID-Paare (aus QGIS)
 │  │  ├─ BFKOORD_WGS_kommagetrennt.csv
 │  │  └─ {Provider}_stops.csv
 │  └─ raw/                          # Rohdaten (automatisch heruntergeladen)
@@ -76,8 +77,8 @@ python main.py
 
 1. Führe die automatische ETL-Pipeline aus: `python main.py`
 2. Führe die manuelle QGIS-Verarbeitung durch
-3. Erstelle `delta_metabhf.txt` manuell in QGIS
-4. Kopiere `delta_metabhf.txt` nach `data/processed/`
+3. Erstelle `metabhf.txt` manuell in QGIS
+4. Kopiere `metabhf.txt` nach `data/processed/delta/`
 5. Führe das Post-Processing-Skript aus: `python process_delta_metabhf.py`
 
 Das `process_delta_metabhf.py` Skript entfernt Sonderzeichen und erstellt ID-Paare im Format "ID2 : ID1".
@@ -107,9 +108,10 @@ ID         NAME$<1>
 ```
 
 ### Generierte Dateien
-- `delta_bfkoord_wgs` - Neue Haltestellen mit Koordinaten und IDs
-- `delta_bfkoord_wgs_kommagetrennt.csv` - CSV-Export der neuen Haltestellen
-- `delta_bahnhof_format` - BAHNHOF-Format für ÖV-Systeme
+- `delta/bfkoord_wgs` - Neue Haltestellen mit Koordinaten und IDs
+- `delta/bfkoord_wgs_kommagetrennt.csv` - CSV-Export der neuen Haltestellen
+- `delta/bahnhof_format` - BAHNHOF-Format für ÖV-Systeme
+- `delta/metabhf.txt` - METABHF ID-Paare (manuell erstellt in QGIS)
 - `BFKOORD_WGS_kommagetrennt.csv` - Alle ÖV-Referenz-Koordinaten als CSV
 - `{Provider}_stops.csv` - Gefilterte Schweizer Haltestellen pro Provider
 

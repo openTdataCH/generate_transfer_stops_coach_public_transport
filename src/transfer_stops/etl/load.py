@@ -1,11 +1,11 @@
-"""Erstellt BAHNHOF-Format aus delta_bfkoord_wgs."""
+"""Erstellt BAHNHOF-Format aus data/processed/delta/bfkoord_wgs."""
 import os
 
 
 def write_bahnhof_format(transportProvider: str):
     """Extrahiert Einträge eines Providers und schreibt sie im BAHNHOF-Format."""
-    input_file = "data/processed/delta_bfkoord_wgs"
-    output_file = "data/processed/delta_bahnhof_format"
+    input_file = "data/processed/delta/bfkoord_wgs"
+    output_file = "data/processed/delta/bahnhof_format"
 
     if not os.path.exists(input_file):
         print(f"Datei nicht gefunden: {input_file}")

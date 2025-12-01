@@ -23,7 +23,7 @@ def drop_columns(df, colnames: list, output_path: str):
 
 
 def check_and_add_new_coords(df, transportProvider: str):
-    """Sammelt neue Koordinaten ohne ID-Vergabe in delta_bfkoord_wgs."""
+    """Sammelt neue Koordinaten ohne ID-Vergabe in data/processed/delta/bfkoord_wgs."""
     def format_coord(lat, lon):
         return f"{lat:.8f},{lon:.8f}"
     
@@ -40,8 +40,8 @@ def check_and_add_new_coords(df, transportProvider: str):
                 except ValueError:
                     continue
 
-    os.makedirs("data/processed", exist_ok=True)
-    output_file_path = os.path.join("data/processed", "delta_bfkoord_wgs")
+    os.makedirs("data/processed/delta", exist_ok=True)
+    output_file_path = os.path.join("data/processed/delta", "bfkoord_wgs")
     
     new_coords = set()
     if os.path.exists(output_file_path):
@@ -117,15 +117,15 @@ def bfkoord_wgs_to_csv(input_path: str, output_path: str):
 
 
 def convert_all_bfkoord_to_csv():
-    """Konvertiert BFKOORD_WGS und delta_bfkoord_wgs zu CSV."""
+    """Konvertiert BFKOORD_WGS und bfkoord_wgs zu CSV."""
     bfkoord_wgs_to_csv('data/raw/oevSammlung/BFKOORD_WGS', 'data/processed/BFKOORD_WGS_kommagetrennt.csv')
-    bfkoord_wgs_to_csv('data/processed/delta_bfkoord_wgs', 'data/processed/delta_bfkoord_wgs_kommagetrennt.csv')
+    bfkoord_wgs_to_csv('data/processed/delta/bfkoord_wgs', 'data/processed/delta/bfkoord_wgs_kommagetrennt.csv')
 
 
-def clean_delta_bfkoord_wgs(file_path: str = 'data/processed/delta_bfkoord_wgs',
+def clean_delta_bfkoord_wgs(file_path: str = 'data/processed/delta/bfkoord_wgs',
                               distance_threshold_meters: float = 100):
     """
-    Bereinigt delta_bfkoord_wgs in-place:
+    Bereinigt bfkoord_wgs in-place:
     1. Entfernt FlixTrain-Einträge
     2. Entfernt räumlich nahe Duplikate (< distance_threshold_meters)
     """
@@ -218,8 +218,8 @@ def clean_delta_bfkoord_wgs(file_path: str = 'data/processed/delta_bfkoord_wgs',
             print(f"     ... und {len(removed_duplicates) - 10} weitere")
 
 
-def assign_ids_to_delta(file_path: str = 'data/processed/delta_bfkoord_wgs'):
-    """Vergibt IDs an bereinigte Koordinaten in delta_bfkoord_wgs (in-place)."""
+def assign_ids_to_delta(file_path: str = 'data/processed/delta/bfkoord_wgs'):
+    """Vergibt IDs an bereinigte Koordinaten in bfkoord_wgs (in-place)."""
     if not os.path.exists(file_path):
         print(f"⚠️ Datei {file_path} existiert nicht")
         return
