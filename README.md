@@ -4,12 +4,12 @@ ETL-Pipeline zur automatischen Verarbeitung von Fernbus-Haltestellen (Flixbus, B
 
 ## Übersicht
 
-Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern herunter, filtert Haltestellen in der Schweiz und bereitet sie für die Integration in bestehende ÖV-Systeme auf.
+Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern und ÖV-Referenzdaten herunter, filtert Haltestellen in der Schweiz, bereinigt Duplikate und bereitet sie für die Integration in bestehende ÖV-Systeme auf.
 
 **ETL-Pipeline:**
-- **Extract**: Automatischer Download von GTFS-Daten, Filterung auf Schweizer Haltestellen (GeoJSON-Boundary)
-- **Transform**: Standardisierung der Koordinaten, Duplikatsprüfung, ID-Generierung
-- **Load**: Erzeugung von Output-Dateien im HAFAS-kompatiblen Format
+- **Extract**: Automatischer Download von ÖV-Referenzdaten und GTFS-Daten, Filterung auf Schweizer Haltestellen
+- **Transform**: Koordinatensammlung, Datenbereinigung (FlixTrain-Entfernung, räumliche Duplikate), ID-Vergabe
+- **Load**: Erzeugung von Output-Dateien im BFKOORD_WGS und BAHNHOF-Format
 
 ## Projektstruktur
 
@@ -17,26 +17,41 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern herunter, filtert
 ├─ main.py                          # Haupteinstiegspunkt der Pipeline
 ├─ README.md
 ├─ .gitignore
-├─ cache/                           # Cache für temporäre Daten
+├─ cache/                           # Cache für MD5-Hashes
 ├─ data/
 │  ├─ external/                     # Externe Referenzdaten
 │  │  └─ swiss_landesgebiet.geojson # Schweizer Landesgrenze
 │  ├─ processed/                    # Verarbeitete Output-Dateien
+│  │  ├─ delta_bfkoord_wgs         # Neue Haltestellen mit IDs
+│  │  ├─ delta_bfkoord_wgs_kommagetrennt.csv
+│  │  ├─ delta_bahnhof_format      # BAHNHOF-Format Output
+│  │  ├─ BFKOORD_WGS_kommagetrennt.csv
+│  │  └─ {Provider}_stops.csv
 │  └─ raw/                          # Rohdaten (automatisch heruntergeladen)
 │     ├─ BlaBlaCar/stops.txt
 │     ├─ Flixbus/stops.txt
-│     └─ oevSammlung/               # Referenzdaten ÖV Schweiz
+│     └─ oevSammlung/               # ÖV-Referenzdaten Schweiz
+│        ├─ BAHNHOF
+│        ├─ BFKOORD_WGS
+│        ├─ METABHF
+│        └─ UMSTEIGB
 └─ src/transfer_stops/
    ├─ config.py                     # Konfiguration (Provider-URLs, IDs)
    ├─ clean_data.py                 # Hilfsskript zum Löschen generierter Daten*
    └─ etl/
-      ├─ extract.py                 # GTFS-Download & Schweiz-Filterung
-      ├─ transform.py               # Koordinaten-Standardisierung & ID-Vergabe
-      ├─ load.py                    # Output-Generierung
-      └─ process_metabhf.py         # Metabhf-Datei Verarbeitung
+      ├─ extract.py                 # Download (ÖV + GTFS) & Schweiz-Filterung
+      ├─ transform.py               # Datenbereinigung & ID-Vergabe
+      ├─ load.py                    # BAHNHOF-Format Generierung
+      └─ process_metabhf.py         # METABHF-Datei Verarbeitung
 ```
 
 *`clean_data.py` ist ein temporäres Hilfsskript für Entwicklung/Testing, um generierte Daten schnell zu löschen und die Pipeline neu zu starten.
+
+## Installation
+
+```bash
+pip install pandas geopandas shapely requests
+```
 
 ## Verwendung
 
@@ -44,15 +59,59 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern herunter, filtert
 python main.py
 ```
 
-Die Pipeline:
-1. Lädt GTFS-Daten von Flixbus und BlaBlaCar herunter
-2. Erkennt automatisch Änderungen (MD5-Hash-Vergleich)
-3. Verarbeitet nur bei erkannten Änderungen
-4. Fragt am Ende, ob generierte Daten gelöscht werden sollen
+**Pipeline-Ablauf:**
+
+1. **Download ÖV-Referenzdaten** - Lädt BAHNHOF, BFKOORD_WGS, METABHF, UMSTEIGB von opentransportdata.swiss
+2. **Download GTFS-Daten** - Lädt Flixbus und BlaBlaCar Haltestellen
+3. **Änderungserkennung** - MD5-Hash-Vergleich, überspringt Verarbeitung wenn keine Änderungen
+4. **Provider-Verarbeitung** - Filtert Schweizer Haltestellen, sammelt neue Koordinaten (ohne IDs)
+5. **Datenbereinigung** - Entfernt FlixTrain-Einträge und räumliche Duplikate (< 100m)
+6. **ID-Vergabe** - Vergibt fortlaufende IDs ab 1700000 an bereinigte Daten
+7. **Output-Generierung** - Erstellt CSV und BAHNHOF-Format Dateien
+8. **METABHF-Verarbeitung** - Fügt ID-Paare hinzu
+
+## Datenbereinigung
+
+Die Pipeline führt automatisch folgende Bereinigungen durch:
+
+- **FlixTrain-Filter**: Entfernt alle Einträge mit "FlixTrain" im Namen (case-insensitive)
+- **Räumliche Duplikate**: Entfernt Haltestellen die näher als 100m zueinander liegen (Haversine-Formel)
+- **Duplikatsprüfung**: Vergleicht mit bestehenden ÖV-Daten um Duplikate zu vermeiden
+
+**Wichtig**: IDs werden erst NACH der Bereinigung vergeben, um keine ID-Lücken zu erzeugen.
 
 ## Ausgabedateien
 
-- `data/processed/delta_bfkoord_wgs` - Neue Haltestellen im HAFAS-Format
-- `data/processed/delta_bfkoord_wgs_kommagetrennt.csv` - CSV-Export
-- `data/processed/BFKOORD_WGS_kommagetrennt.csv` - Vollständige Koordinatenliste
-- `data/processed/{Provider}_stops.csv` - Gefilterte Provider-Haltestellen
+### BFKOORD_WGS Format
+```
+ID       LON        LAT         % NAME [PROVIDER]
+1700000    7.348153  46.223220    % Sion (Rue Traversière) [Flixbus]
+```
+
+### BAHNHOF Format
+```
+ID         NAME$<1>
+1700000    Sion (Rue Traversière)$<1>
+```
+
+### Generierte Dateien
+- `delta_bfkoord_wgs` - Neue Haltestellen mit Koordinaten und IDs
+- `delta_bfkoord_wgs_kommagetrennt.csv` - CSV-Export der neuen Haltestellen
+- `delta_bahnhof_format` - BAHNHOF-Format für ÖV-Systeme
+- `BFKOORD_WGS_kommagetrennt.csv` - Alle ÖV-Referenz-Koordinaten als CSV
+- `{Provider}_stops.csv` - Gefilterte Schweizer Haltestellen pro Provider
+
+## Konfiguration
+
+`src/transfer_stops/config.py`:
+- `BEGINNING_ID`: Start-ID für neue Haltestellen (Standard: 1700000)
+- `OEV_SAMMLUNG_URL`: Permalink zu ÖV-Referenzdaten
+- `providers`: Liste der Transport-Provider mit GTFS-URLs
+
+## Clean-Up
+
+```bash
+python src/transfer_stops/clean_data.py
+```
+
+Löscht alle heruntergeladenen und generierten Daten für einen kompletten Neustart der Pipeline.
