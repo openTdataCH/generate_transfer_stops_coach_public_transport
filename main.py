@@ -8,7 +8,7 @@ import os
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from src.transfer_stops.etl.extract import download_all_providers, extract_swiss_stops_csv
+from src.transfer_stops.etl.extract import download_all_providers, download_oev_sammlung, extract_swiss_stops_csv
 from src.transfer_stops.etl.transform import (
     drop_columns, standardize_lat_lon, check_and_add_new_coords, 
     clean_delta_bfkoord_wgs, assign_ids_to_delta, convert_all_bfkoord_to_csv
@@ -45,8 +45,14 @@ def process_transport_provider(provider_config):
 def main():
     """Main ETL execution."""
     
-    # Download GTFS data
+    # Download ÖV reference data first
     print("=" * 50)
+    print("Lade ÖV-Referenzdaten herunter...")
+    print("=" * 50)
+    download_oev_sammlung()
+    
+    # Download GTFS data
+    print("\n" + "=" * 50)
     print("Lade GTFS-Daten herunter...")
     print("=" * 50)
     download_results = download_all_providers(config.providers)

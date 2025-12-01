@@ -6,6 +6,7 @@ import requests
 import zipfile
 from io import BytesIO
 import hashlib
+from transfer_stops import config
 
 
 def get_file_hash(filepath):
@@ -22,6 +23,52 @@ def get_file_hash(filepath):
         for chunk in iter(lambda: f.read(4096), b""):
             md5_hash.update(chunk)
     return md5_hash.hexdigest()
+
+
+def download_oev_sammlung():
+    """
+    Lädt ÖV-Referenzdaten herunter (BAHNHOF, BFKOORD_WGS, METABHF, UMSTEIGB).
+    Gibt True zurück wenn Dateien aktualisiert wurden, False wenn keine Änderungen.
+    """
+    print("\n=== Lade ÖV-Referenzdaten herunter ===")
+    
+    url = config.OEV_SAMMLUNG_URL
+    output_dir = 'data/raw/oevSammlung'
+    
+    try:
+        print(f"Lade ÖV-Daten herunter von: opentransportdata.swiss")
+        response = requests.get(url, timeout=120)
+        response.raise_for_status()
+        
+        os.makedirs(output_dir, exist_ok=True)
+        
+        has_changes = False
+        with zipfile.ZipFile(BytesIO(response.content)) as zip_file:
+            for file_name in config.oev_files:
+                if file_name in zip_file.namelist():
+                    new_content = zip_file.read(file_name)
+                    new_hash = hashlib.md5(new_content).hexdigest()
+                    
+                    output_file = os.path.join(output_dir, file_name)
+                    existing_hash = get_file_hash(output_file)
+                    
+                    if existing_hash != new_hash:
+                        with open(output_file, 'wb') as f:
+                            f.write(new_content)
+                        status = "erstellt" if existing_hash is None else "aktualisiert"
+                        print(f"  ✅ {file_name} {status}")
+                        has_changes = True
+                    else:
+                        print(f"  ℹ️ {file_name} unverändert")
+                else:
+                    print(f"  ⚠️ {file_name} nicht im ZIP gefunden")
+        
+        return has_changes
+        
+    except Exception as e:
+        print(f"❌ Fehler beim Download der ÖV-Daten: {e}")
+        print("ℹ️ Verwende vorhandene Dateien falls verfügbar")
+        return False
 
 
 def download_and_extract_gtfs(url: str, output_dir: str):

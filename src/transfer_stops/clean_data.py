@@ -9,7 +9,7 @@ def clean_data():
     print("Lösche Rohdaten und Output-Dateien...")
     print("=" * 50)
     
-    raw_data_folders = ['data/raw/Flixbus', 'data/raw/BlaBlaCar']
+    raw_data_folders = ['data/raw/Flixbus', 'data/raw/BlaBlaCar', 'data/raw/oevSammlung']
     output_folder = 'data/processed'
     deleted_count = 0
     
@@ -52,8 +52,7 @@ def clean_data():
 
 if __name__ == "__main__":
     print("\n⚠️  WARNUNG: Dies löscht alle Rohdaten und Output-Dateien!")
-    print("   - data/raw/Flixbus/")
-    print("   - data/raw/BlaBlaCar/")
+    print("   - Alle Dateien in data/raw/")
     print("   - Alle Dateien in data/processed/")
     print()
     
