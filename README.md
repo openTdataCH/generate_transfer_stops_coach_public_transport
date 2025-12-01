@@ -15,6 +15,7 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern und ÖV-Referenzd
 
 ```
 ├─ main.py                          # Haupteinstiegspunkt der Pipeline
+├─ process_delta_metabhf.py         # Manuelle Nachbearbeitung von METABHF-Daten
 ├─ README.md
 ├─ .gitignore
 ├─ cache/                           # Cache für MD5-Hashes
@@ -25,6 +26,7 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern und ÖV-Referenzd
 │  │  ├─ delta_bfkoord_wgs         # Neue Haltestellen mit IDs
 │  │  ├─ delta_bfkoord_wgs_kommagetrennt.csv
 │  │  ├─ delta_bahnhof_format      # BAHNHOF-Format Output
+│  │  ├─ delta_metabhf.txt         # METABHF ID-Paare (aus QGIS)
 │  │  ├─ BFKOORD_WGS_kommagetrennt.csv
 │  │  └─ {Provider}_stops.csv
 │  └─ raw/                          # Rohdaten (automatisch heruntergeladen)
@@ -41,8 +43,7 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern und ÖV-Referenzd
    └─ etl/
       ├─ extract.py                 # Download (ÖV + GTFS) & Schweiz-Filterung
       ├─ transform.py               # Datenbereinigung & ID-Vergabe
-      ├─ load.py                    # BAHNHOF-Format Generierung
-      └─ process_metabhf.py         # METABHF-Datei Verarbeitung
+      └─ load.py                    # BAHNHOF-Format Generierung
 ```
 
 *`clean_data.py` ist ein temporäres Hilfsskript für Entwicklung/Testing, um generierte Daten schnell zu löschen und die Pipeline neu zu starten.
@@ -68,7 +69,18 @@ python main.py
 5. **Datenbereinigung** - Entfernt FlixTrain-Einträge und räumliche Duplikate (< 100m)
 6. **ID-Vergabe** - Vergibt fortlaufende IDs ab 1700000 an bereinigte Daten
 7. **Output-Generierung** - Erstellt CSV und BAHNHOF-Format Dateien
-8. **METABHF-Verarbeitung** - Fügt ID-Paare hinzu
+
+### METABHF Post-Processing (Manueller Schritt)
+
+⚠️ **Hinweis**: Die Verarbeitung von METABHF-Daten erfolgt in einem separaten manuellen Schritt nach der ETL-Pipeline:
+
+1. Führe die automatische ETL-Pipeline aus: `python main.py`
+2. Führe die manuelle QGIS-Verarbeitung durch
+3. Erstelle `delta_metabhf.txt` manuell in QGIS
+4. Kopiere `delta_metabhf.txt` nach `data/processed/`
+5. Führe das Post-Processing-Skript aus: `python process_delta_metabhf.py`
+
+Das `process_delta_metabhf.py` Skript entfernt Sonderzeichen und erstellt ID-Paare im Format "ID2 : ID1".
 
 ## Datenbereinigung
 

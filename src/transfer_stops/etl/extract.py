@@ -104,26 +104,23 @@ def download_and_extract_gtfs(url: str, output_dir: str):
     return True
 
 
-def download_provider_data(provider_config):
-    """Lädt GTFS-Daten für einen Provider herunter."""
-    if 'gtfs_url' not in provider_config:
-        return True
-    
-    output_dir = os.path.dirname(provider_config['input_path'])
-    print(f"\nLade {provider_config['name']} herunter...")
-    
-    try:
-        return download_and_extract_gtfs(provider_config['gtfs_url'], output_dir)
-    except Exception as e:
-        print(f"❌ Fehler: {e}")
-        raise
-
-
 def download_all_providers(providers):
     """Lädt GTFS-Daten für alle Provider herunter."""
     results = {}
     for provider in providers:
-        results[provider['name']] = download_provider_data(provider)
+        if 'gtfs_url' not in provider:
+            results[provider['name']] = True
+            continue
+        
+        output_dir = os.path.dirname(provider['input_path'])
+        print(f"\nLade {provider['name']} herunter...")
+        
+        try:
+            results[provider['name']] = download_and_extract_gtfs(provider['gtfs_url'], output_dir)
+        except Exception as e:
+            print(f"❌ Fehler: {e}")
+            raise
+    
     return results
 
 

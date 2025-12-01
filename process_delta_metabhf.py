@@ -1,4 +1,19 @@
-"""Verarbeitet delta_metabhf.txt: Entfernt Sonderzeichen und fügt ID-Paare hinzu."""
+"""
+METABHF Post-Processing Utility
+
+Dieses Skript verarbeitet delta_metabhf.txt NACH der ETL-Pipeline.
+
+Workflow:
+1. python main.py                    # ETL-Pipeline ausführen
+2. [QGIS] delta_metabhf.txt erstellen (manueller Schritt)
+3. delta_metabhf.txt nach data/processed/ kopieren
+4. python process_delta_metabhf.py   # Dieses Skript ausführen
+
+Das Skript:
+- Entfernt Sonderzeichen (Anführungszeichen, Ausrufezeichen)
+- Extrahiert ID-Paare aus dem Format "ID1 ID2 000"
+- Fügt neue Einträge im Format "ID2 : ID1" hinzu
+"""
 import os
 import re
 
@@ -10,7 +25,11 @@ def process_metabhf_file(metabhf_path='data/processed/delta_metabhf.txt'):
     2. Fügt neue Einträge im Format "second_id : first_id" hinzu
     """
     if not os.path.exists(metabhf_path):
-        print(f"ℹ️ {metabhf_path} existiert nicht")
+        print(f"❌ Datei {metabhf_path} existiert nicht")
+        print(f"\nBitte stelle sicher, dass:")
+        print(f"  1. Die ETL-Pipeline ausgeführt wurde (python main.py)")
+        print(f"  2. delta_metabhf.txt in QGIS erstellt wurde")
+        print(f"  3. Die Datei nach {metabhf_path} kopiert wurde")
         return
     
     print(f"\n=== Verarbeite {metabhf_path} ===")
@@ -57,7 +76,13 @@ def process_metabhf_file(metabhf_path='data/processed/delta_metabhf.txt'):
     
     with open(metabhf_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(final_lines) + '\n')
+    
+    print(f"✅ {metabhf_path} erfolgreich verarbeitet")
 
 
 if __name__ == "__main__":
+    print("=" * 60)
+    print("METABHF Post-Processing")
+    print("=" * 60)
     process_metabhf_file()
+    print("=" * 60)

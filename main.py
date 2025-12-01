@@ -14,7 +14,6 @@ from src.transfer_stops.etl.transform import (
     clean_delta_bfkoord_wgs, assign_ids_to_delta, convert_all_bfkoord_to_csv
 )
 from src.transfer_stops.etl.load import write_bahnhof_format
-from src.transfer_stops.etl.process_metabhf import process_metabhf_file
 from src.transfer_stops import config
 from src.transfer_stops.clean_data import clean_data
 
@@ -140,15 +139,6 @@ def main():
             write_bahnhof_format(provider['name'])
         except Exception as e:
             print(f"❌ Fehler bei BAHNHOF-Format für {provider['name']}: {e}")
-    
-    # Process metabhf file
-    print("\n" + "=" * 50)
-    print("Verarbeite delta_metabhf.txt...")
-    print("=" * 50)
-    try:
-        process_metabhf_file()
-    except Exception as e:
-        print(f"❌ Fehler bei Verarbeitung von delta_metabhf.txt: {e}")
     
     print("\n" + "=" * 50)
     print("✅ ETL-Pipeline abgeschlossen!")
