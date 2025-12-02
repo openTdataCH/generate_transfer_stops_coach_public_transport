@@ -76,7 +76,8 @@ def main():
         "data/processed/new_bfkoord_wgs_kommagetrennt.csv",
         "data/processed/delta/bfkoord_wgs",
         "data/processed/delta/bfkoord_wgs_kommagetrennt.csv",
-        "data/processed/BFKOORD_WGS_kommagetrennt.csv",
+        "data/processed/delta/bahnhof",
+        "data/processed/oev_bfkoord_wgs_kommagetrennt.csv",
         "data/processed/BAHNHOF"
     ]
     

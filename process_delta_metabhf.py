@@ -1,12 +1,12 @@
 """
 METABHF Post-Processing Utility
 
-Dieses Skript verarbeitet metabhf.txt NACH der ETL-Pipeline.
+Dieses Skript verarbeitet metabhf NACH der ETL-Pipeline.
 
 Workflow:
 1. python main.py                    # ETL-Pipeline ausführen
-2. [QGIS] metabhf.txt erstellen (manueller Schritt)
-3. metabhf.txt nach data/processed/delta/ kopieren
+2. [QGIS] metabhf erstellen (manueller Schritt)
+3. metabhf nach data/processed/delta/ kopieren
 4. python process_delta_metabhf.py   # Dieses Skript ausführen
 
 Das Skript:
@@ -18,9 +18,9 @@ import os
 import re
 
 
-def process_metabhf_file(metabhf_path='data/processed/delta/metabhf.txt'):
+def process_metabhf_file(metabhf_path='data/processed/delta/metabhf'):
     """
-    Verarbeitet metabhf.txt:
+    Verarbeitet metabhf:
     1. Entfernt Ausrufezeichen aus bestehendem Inhalt
     2. Fügt neue Einträge im Format "second_id : first_id" hinzu
     """
@@ -28,7 +28,7 @@ def process_metabhf_file(metabhf_path='data/processed/delta/metabhf.txt'):
         print(f"❌ Datei {metabhf_path} existiert nicht")
         print(f"\nBitte stelle sicher, dass:")
         print(f"  1. Die ETL-Pipeline ausgeführt wurde (python main.py)")
-        print(f"  2. metabhf.txt in QGIS erstellt wurde")
+        print(f"  2. metabhf in QGIS erstellt wurde")
         print(f"  3. Die Datei nach {metabhf_path} kopiert wurde")
         return
     
@@ -40,6 +40,11 @@ def process_metabhf_file(metabhf_path='data/processed/delta/metabhf.txt'):
     # Entferne Anführungszeichen und Ausrufezeichen
     cleaned_content = content.replace('"', '').replace('!', '')
     cleaned_lines = cleaned_content.split('\n')
+    
+    # Entferne erste Zeile wenn sie nicht mit einer Ziffer beginnt
+    if cleaned_lines and cleaned_lines[0].strip() and not cleaned_lines[0].strip()[0].isdigit():
+        cleaned_lines.pop(0)
+        print("ℹ️ Erste Zeile entfernt (beginnt nicht mit Ziffer)")
     
     # Sammle ID-Paare und existierende Einträge
     entries = []
