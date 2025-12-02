@@ -24,7 +24,12 @@ wheels/
 *.egg
 
 # Data
-data/
+data/*
+!data/processed/
+data/processed/*
+!data/processed/delta/
+data/processed/delta/*
+!data/processed/delta/metabhf.txt
 
 # Cache
 cache/
