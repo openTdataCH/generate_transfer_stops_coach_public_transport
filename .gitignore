@@ -28,6 +28,7 @@ data/*
 !data/external/
 !data/processed/
 data/processed/*
+!data/processed/delta.zip
 !data/processed/delta/
 data/processed/delta/*
 !data/processed/delta/METABHF
