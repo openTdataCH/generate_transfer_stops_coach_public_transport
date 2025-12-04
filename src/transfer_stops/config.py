@@ -6,6 +6,9 @@ BEGINNING_ID = 1700000
 # ÖV-Referenzdaten URL
 OEV_SAMMLUNG_URL = 'https://data.opentransportdata.swiss/dataset/timetable-54-2025-hrdf/resource_permalink/oev_sammlung_ch_hrdf_5_40_41_2025_20251128_211010.zip'
 
+# ÖV-Referenzdateien
+oev_files = ['BAHNHOF', 'BFKOORD_WGS', 'METABHF', 'UMSTEIGB']
+
 # Transport-Provider Konfigurationen
 providers = [
     {
@@ -32,5 +35,3 @@ providers = [
     }
 ]
 
-# ÖV-Referenzdateien
-oev_files = ['BAHNHOF', 'BFKOORD_WGS', 'METABHF', 'UMSTEIGB']

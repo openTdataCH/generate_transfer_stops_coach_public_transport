@@ -13,7 +13,7 @@ from src.transfer_stops.etl.transform import (
     drop_columns, standardize_lat_lon, check_and_add_new_coords, 
     clean_delta_bfkoord_wgs, assign_ids_to_delta, convert_all_bfkoord_to_csv
 )
-from src.transfer_stops.etl.load import write_bahnhof_format
+from src.transfer_stops.etl.load import write_bahnhof_format, zip_delta_files
 from src.transfer_stops import config
 from src.transfer_stops.clean_data import clean_data
 
@@ -45,10 +45,10 @@ def main():
     """Main ETL execution."""
     
     # Download ÖV reference data first
-    print("=" * 50)
+    print("\n" + "=" * 50)
     print("Lade ÖV-Referenzdaten herunter...")
     print("=" * 50)
-    download_oev_sammlung()
+    oev_has_changes = download_oev_sammlung()
     
     # Download GTFS data
     print("\n" + "=" * 50)
@@ -56,11 +56,11 @@ def main():
     print("=" * 50)
     download_results = download_all_providers(config.providers)
 
-    # Check if any provider has changes
-    has_any_changes = any(download_results.values())
+    # Check if any provider or ÖV data has changes
+    has_any_changes = any(download_results.values()) or oev_has_changes
     
     if not has_any_changes:
-        print("\nℹ️ Keine Änderungen bei den Providern erkannt. Überspringe Verarbeitung.")
+        print("\nℹ️ Keine Änderungen bei den Providern oder ÖV-Daten erkannt. Überspringe Verarbeitung.")
         print("\n" + "=" * 50)
         print("✅ ETL-Pipeline abgeschlossen!")
         print("=" * 50)
@@ -72,13 +72,10 @@ def main():
     print("=" * 50)
     
     output_files = [
-        "data/processed/new_bfkoord_wgs",
-        "data/processed/new_bfkoord_wgs_kommagetrennt.csv",
-        "data/processed/delta/bfkoord_wgs",
-        "data/processed/delta/bfkoord_wgs_kommagetrennt.csv",
-        "data/processed/delta/bahnhof",
-        "data/processed/oev_bfkoord_wgs_kommagetrennt.csv",
-        "data/processed/BAHNHOF"
+        "data/processed/delta/BFKOORD_WGS",
+        "data/processed/delta/BFKOORD_WGS_KOMMAGETRENNT.csv",
+        "data/processed/delta/BAHNHOF",
+        "data/processed/OEV_BFKOORD_WGS_KOMMAGETRENNT.csv"
     ]
     
     for output_file in output_files:
@@ -104,7 +101,7 @@ def main():
             print(f"❌ Fehler bei Verarbeitung von {provider['name']}: {e}")
             continue
     
-    # Clean bfkoord_wgs (remove FlixTrain and nearby duplicates)
+    # Clean BFKOORD_WGS (remove FlixTrain and nearby duplicates)
     print("\n" + "=" * 50)
     print("Bereinige gesammelte Koordinaten...")
     print("=" * 50)
@@ -145,11 +142,16 @@ def main():
     print("✅ ETL-Pipeline abgeschlossen!")
     print("=" * 50)
     
+    # Zippe Delta-Dateien
+    print("\n" + "=" * 50)
+    print("Zippe Delta-Dateien...")
+    print("=" * 50)
+    zip_delta_files()
+    
     # Frage ob Daten gelöscht werden sollen
     print("\n⚠️  Möchtest du die generierten Rohdaten und Output-Dateien löschen?")
-    print("   - data/raw/Flixbus/")
-    print("   - data/raw/BlaBlaCar/")
-    print("   - Alle Dateien in data/processed/")
+    print("   - Alle Dateien in data/processed/ (ausser METABHF)")
+    print("   - Alle Dateien in data/raw/")
     print()
     
     response = input("Dateien löschen? (ja/nein): ").strip().lower()

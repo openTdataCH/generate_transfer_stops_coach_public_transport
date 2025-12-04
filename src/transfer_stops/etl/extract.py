@@ -126,16 +126,17 @@ def download_all_providers(providers):
 
 def extract_swiss_stops_csv(input_path: str, output_path: str, provider_name: str, 
                             stop_lat: str, stop_long: str, 
-                            geojson_path: str = 'data\\external\\swiss_landesgebiet.geojson'):
+                            geojson_path: str = 'data\\external\\swissBOUNDARIES3D_1_5_LV95_LN02.gpkg'):
     """Liest CSV, filtert Schweizer Haltestellen und schreibt Ergebnis."""
     df = pd.read_csv(input_path)
     df[stop_lat] = df[stop_lat].astype(float)
     df[stop_long] = df[stop_long].astype(float)
     
     if not os.path.exists(geojson_path):
-        raise FileNotFoundError(f"GeoJSON nicht gefunden: {geojson_path}")
+        raise FileNotFoundError(f"Landesgrenze-Datei nicht gefunden: {geojson_path}")
     
-    swiss_landesgebiet = gpd.read_file(geojson_path)
+    # Lese GeoPackage mit tlm_landesgebiet Layer (Schweizer Landesgrenze)
+    swiss_landesgebiet = gpd.read_file(geojson_path, layer='tlm_landesgebiet')
     gdf_points = gpd.GeoDataFrame(
         df, 
         geometry=gpd.points_from_xy(df[stop_long], df[stop_lat]), 

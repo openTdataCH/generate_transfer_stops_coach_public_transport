@@ -1,12 +1,12 @@
 """
 METABHF Post-Processing Utility
 
-Dieses Skript verarbeitet metabhf NACH der ETL-Pipeline.
+Dieses Skript verarbeitet METABHF NACH der ETL-Pipeline.
 
 Workflow:
 1. python main.py                    # ETL-Pipeline ausführen
-2. [QGIS] metabhf erstellen (manueller Schritt)
-3. metabhf nach data/processed/delta/ kopieren
+2. [QGIS] METABHF erstellen (manueller Schritt)
+3. METABHF nach data/processed/delta/ kopieren
 4. python process_delta_metabhf.py   # Dieses Skript ausführen
 
 Das Skript:
@@ -18,9 +18,9 @@ import os
 import re
 
 
-def process_metabhf_file(metabhf_path='data/processed/delta/metabhf'):
+def process_metabhf_file(metabhf_path='data/processed/delta/METABHF'):
     """
-    Verarbeitet metabhf:
+    Verarbeitet METABHF:
     1. Entfernt Ausrufezeichen aus bestehendem Inhalt
     2. Fügt neue Einträge im Format "second_id : first_id" hinzu
     """
@@ -28,7 +28,7 @@ def process_metabhf_file(metabhf_path='data/processed/delta/metabhf'):
         print(f"❌ Datei {metabhf_path} existiert nicht")
         print(f"\nBitte stelle sicher, dass:")
         print(f"  1. Die ETL-Pipeline ausgeführt wurde (python main.py)")
-        print(f"  2. metabhf in QGIS erstellt wurde")
+        print(f"  2. METABHF in QGIS erstellt wurde")
         print(f"  3. Die Datei nach {metabhf_path} kopiert wurde")
         return
     
