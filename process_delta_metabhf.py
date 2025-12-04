@@ -5,89 +5,106 @@ Dieses Skript verarbeitet METABHF NACH der ETL-Pipeline.
 
 Workflow:
 1. python main.py                    # ETL-Pipeline ausführen
-2. [QGIS] METABHF erstellen (manueller Schritt)
-3. METABHF nach data/processed/delta/ kopieren
+2. [QGIS] METABHF als CSV erstellen (manueller Schritt)
+3. CSV nach data/processed/metabhf.csv speichern
 4. python process_delta_metabhf.py   # Dieses Skript ausführen
 
 Das Skript:
-- Entfernt Sonderzeichen (Anführungszeichen, Ausrufezeichen)
-- Extrahiert ID-Paare aus dem Format "ID1 ID2 000"
-- Fügt neue Einträge im Format "ID2 : ID1" hinzu
+- Prüft ob metabhf.csv in data/processed/ existiert
+- Kopiert CSV-Inhalt zu delta/metabhf (behält Original-Format)
+- Extrahiert ID-Paare aus dem Format "ID1 ID2 0\n*A Y"
+- Fügt am Ende Einträge im Format "ID2 : ID1" hinzu
 """
 import os
-import re
+import csv
 
 
-def process_metabhf_file(metabhf_path='data/processed/delta/METABHF'):
+def process_metabhf_file(csv_path='data/processed/METABHF.csv', output_path='data/processed/delta/METABHF'):
     """
-    Verarbeitet METABHF:
-    1. Entfernt Ausrufezeichen aus bestehendem Inhalt
-    2. Fügt neue Einträge im Format "second_id : first_id" hinzu
+    Verarbeitet METABHF.csv:
+    1. Prüft ob CSV existiert
+    2. Kopiert Original-Inhalt (ID1 ID2 000 *A Y Format)
+    3. Extrahiert ID-Paare
+    4. Fügt am Ende Einträge im Format "ID2 : ID1" hinzu
     """
-    if not os.path.exists(metabhf_path):
-        print(f"❌ Datei {metabhf_path} existiert nicht")
+    # Prüfe ob CSV existiert
+    if not os.path.exists(csv_path):
+        print(f"\n❌ FEHLER: {csv_path} existiert nicht!")
+        print(f"\nDer Prozess kann nicht fortgesetzt werden.")
         print(f"\nBitte stelle sicher, dass:")
         print(f"  1. Die ETL-Pipeline ausgeführt wurde (python main.py)")
-        print(f"  2. METABHF in QGIS erstellt wurde")
-        print(f"  3. Die Datei nach {metabhf_path} kopiert wurde")
-        return
+        print(f"  2. METABHF in QGIS als CSV erstellt wurde")
+        print(f"  3. Die CSV-Datei als {csv_path} gespeichert wurde")
+        return False
     
-    print(f"\n=== Verarbeite {metabhf_path} ===")
+    print(f"\n=== Verarbeite {csv_path} ===")
     
-    with open(metabhf_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+    # Erstelle delta-Ordner falls nicht vorhanden
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    # Entferne Anführungszeichen und Ausrufezeichen
-    cleaned_content = content.replace('"', '').replace('!', '')
-    cleaned_lines = cleaned_content.split('\n')
-    
-    # Entferne erste Zeile wenn sie nicht mit einer Ziffer beginnt
-    if cleaned_lines and cleaned_lines[0].strip() and not cleaned_lines[0].strip()[0].isdigit():
-        cleaned_lines.pop(0)
-        print("ℹ️ Erste Zeile entfernt (beginnt nicht mit Ziffer)")
-    
-    # Sammle ID-Paare und existierende Einträge
+    # Lese CSV und sammle ID-Paare
     entries = []
-    existing_colon_entries = set()
+    original_content = []
     
-    for line in cleaned_lines:
-        line_stripped = line.strip()
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+            # Speichere Original-Inhalt und entferne alle Anführungszeichen
+            for line in content.split('\n'):
+                cleaned_line = line.strip()
+                # Entferne äußere Anführungszeichen falls vorhanden
+                if cleaned_line.startswith('"') and cleaned_line.endswith('"'):
+                    cleaned_line = cleaned_line[1:-1]
+                
+                # Entferne auch verbleibende Anführungszeichen innerhalb der Zeile
+                cleaned_line = cleaned_line.replace('"', '')
+                
+                # Überspringe Header "final_line"
+                if cleaned_line and cleaned_line != 'final_line':
+                    original_content.append(cleaned_line)
+                    
+                    # Extrahiere ID-Paare nur aus Zeilen die mit IDs beginnen
+                    parts = cleaned_line.strip().split()
+                    if len(parts) >= 2:
+                        first_id = parts[0].strip()
+                        second_id = parts[1].strip()
+                        
+                        # Prüfe ob beide IDs numerisch sind (7-8 Stellen)
+                        if first_id.isdigit() and second_id.isdigit() and len(first_id) >= 7 and len(second_id) >= 7:
+                            entries.append((first_id, second_id))
+    
+    except Exception as e:
+        print(f"❌ Fehler beim Lesen der CSV: {e}")
+        return False
+    
+    if not entries:
+        print("⚠️ Keine gültigen ID-Paare gefunden")
+        return False
+    
+    # Schreibe metabhf-Datei
+    with open(output_path, 'w', encoding='utf-8') as f:
+        # 1. Schreibe Original-Inhalt (ID1 ID2 000 *A Y Format)
+        f.write('\n'.join(original_content))
+        if original_content and not original_content[-1].endswith('\n'):
+            f.write('\n')
         
-        if ' : ' in line_stripped:
-            existing_colon_entries.add(line_stripped)
-        
-        # Extrahiere ID-Paare aus Zeilen wie "1700006 8502056 000"
-        if line_stripped and re.match(r'^\d{7,8}\s+\d{7,8}', line_stripped):
-            parts = line_stripped.split()
-            if len(parts) >= 2:
-                entries.append((parts[0], parts[1]))
+        # 2. Füge ID-Paare im Format "ID2 : ID1" hinzu
+        for first_id, second_id in entries:
+            f.write(f"{second_id} : {first_id}\n")
     
-    # Behalte nicht-leere Zeilen
-    final_lines = [line for line in cleaned_lines if line.strip()]
-    
-    # Erstelle neue Einträge im Format "second_id : first_id"
-    new_entries = []
-    for first_id, second_id in entries:
-        new_entry = f"{second_id} : {first_id}"
-        if new_entry not in existing_colon_entries:
-            new_entries.append(new_entry)
-            existing_colon_entries.add(new_entry)
-    
-    if new_entries:
-        final_lines.extend(new_entries)
-        print(f"✅ {len(new_entries)} neue Einträge hinzugefügt")
-    else:
-        print("ℹ️ Keine neuen Einträge")
-    
-    with open(metabhf_path, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(final_lines) + '\n')
-    
-    print(f"✅ {metabhf_path} erfolgreich verarbeitet")
+    print(f"✅ Original-Inhalt kopiert")
+    print(f"✅ {len(entries)} ID-Paare im Format 'ID2 : ID1' hinzugefügt")
+    print(f"✅ {output_path} erfolgreich erstellt")
+    return True
 
 
 if __name__ == "__main__":
     print("=" * 60)
     print("METABHF Post-Processing")
     print("=" * 60)
-    process_metabhf_file()
+    success = process_metabhf_file()
     print("=" * 60)
+    
+    if not success:
+        exit(1)
