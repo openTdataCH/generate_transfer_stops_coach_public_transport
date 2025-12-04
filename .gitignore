@@ -25,11 +25,13 @@ wheels/
 
 # Data
 data/*
+!data/external/
 !data/processed/
 data/processed/*
 !data/processed/delta/
 data/processed/delta/*
 !data/processed/delta/metabhf
+
 
 # Cache
 cache/
