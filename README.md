@@ -55,11 +55,11 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern und ÖV-Referenzd
 │  ├─ processed/                    # Verarbeitete Output-Dateien
 │  │  ├─ delta/                     # Neue/geänderte Daten
 │  │  │  ├─ BFKOORD_WGS             # Neue Haltestellen mit IDs
-│  │  │  ├─ BFKOORD_WGS_KOMMAGETRENNT.csv  # CSV-Export
 │  │  │  ├─ BAHNHOF                 # BAHNHOF-Format Output
 │  │  │  └─ METABHF                 # METABHF mit Umsteigebeziehungen
 │  │  ├─ delta.zip                  # Gezippte Delta-Dateien für Weitergabe
-│  │  ├─ METABHF.csv                # METABHF aus QGIS (manuell erstellt)
+│  │  ├─ BFKOORD_WGS_KOMMAGETRENNT.csv  # CSV der neuen Haltestellen
+│  │  ├─ QGIS_METABHF.csv                # METABHF aus QGIS (manuell erstellt)
 │  │  ├─ OEV_BFKOORD_WGS_KOMMAGETRENNT.csv  # ÖV-Referenzkoordinaten als CSV
 │  │  ├─ Flixbus_stops.csv          # Gefilterte Schweizer Flixbus-Haltestellen
 │  │  └─ BlaBlaCar_stops.csv        # Gefilterte Schweizer BlaBlaCar-Haltestellen

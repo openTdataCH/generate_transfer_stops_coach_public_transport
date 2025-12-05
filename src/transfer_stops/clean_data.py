@@ -40,16 +40,16 @@ def clean_data():
             file_path = os.path.join(output_folder, filename)
             try:
                 if os.path.isfile(file_path):
+                    # Überspringe QGIS_METABHF.csv im processed/ Ordner
+                    if filename == 'QGIS_METABHF.csv':
+                        print(f"ℹ️  Übersprungen: {file_path}")
+                        continue
                     os.remove(file_path)
                     print(f"✅ Gelöscht: {file_path}")
                     deleted_count += 1
                 elif os.path.isdir(file_path):
                     for subfile in os.listdir(file_path):
                         subfile_path = os.path.join(file_path, subfile)
-                        # Überspringe metabhf
-                        if subfile.lower() == 'metabhf':
-                            print(f"ℹ️  Übersprungen: {subfile_path}")
-                            continue
                         if os.path.isfile(subfile_path):
                             os.remove(subfile_path)
                             print(f"✅ Gelöscht: {subfile_path}")

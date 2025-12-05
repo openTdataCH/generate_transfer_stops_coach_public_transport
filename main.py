@@ -13,7 +13,7 @@ from src.transfer_stops.etl.transform import (
     drop_columns, standardize_lat_lon, check_and_add_new_coords, 
     clean_delta_bfkoord_wgs, assign_ids_to_delta, convert_all_bfkoord_to_csv
 )
-from src.transfer_stops.etl.load import write_bahnhof_format, zip_delta_files
+from src.transfer_stops.etl.load import write_bahnhof_format
 from src.transfer_stops import config
 from src.transfer_stops.clean_data import clean_data
 
@@ -73,8 +73,8 @@ def main():
     
     output_files = [
         "data/processed/delta/BFKOORD_WGS",
-        "data/processed/delta/BFKOORD_WGS_KOMMAGETRENNT.csv",
         "data/processed/delta/BAHNHOF",
+        "data/processed/BFKOORD_WGS_KOMMAGETRENNT.csv",
         "data/processed/OEV_BFKOORD_WGS_KOMMAGETRENNT.csv"
     ]
     
@@ -142,11 +142,6 @@ def main():
     print("✅ ETL-Pipeline abgeschlossen!")
     print("=" * 50)
     
-    # Zippe Delta-Dateien
-    print("\n" + "=" * 50)
-    print("Zippe Delta-Dateien...")
-    print("=" * 50)
-    zip_delta_files()
     
     # Frage ob Daten gelöscht werden sollen
     print("\n⚠️  Möchtest du die generierten Rohdaten und Output-Dateien löschen?")

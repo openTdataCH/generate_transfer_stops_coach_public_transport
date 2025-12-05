@@ -117,9 +117,9 @@ def bfkoord_wgs_to_csv(input_path: str, output_path: str):
 
 
 def convert_all_bfkoord_to_csv():
-    """Konvertiert BFKOORD_WGS und bfkoord_wgs zu CSV."""
+    """Konvertiert delta/BFKOORD_WGS und oevSammlung/BFKOORD_WGS zu CSV."""
     bfkoord_wgs_to_csv('data/raw/oevSammlung/BFKOORD_WGS', 'data/processed/OEV_BFKOORD_WGS_KOMMAGETRENNT.csv')
-    bfkoord_wgs_to_csv('data/processed/delta/BFKOORD_WGS', 'data/processed/delta/BFKOORD_WGS_KOMMAGETRENNT.csv')
+    bfkoord_wgs_to_csv('data/processed/delta/BFKOORD_WGS', 'data/processed/BFKOORD_WGS_KOMMAGETRENNT.csv')
 
 
 def clean_delta_bfkoord_wgs(file_path: str = 'data/processed/delta/BFKOORD_WGS',

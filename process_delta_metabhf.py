@@ -6,20 +6,20 @@ Dieses Skript verarbeitet METABHF NACH der ETL-Pipeline.
 Workflow:
 1. python main.py                    # ETL-Pipeline ausführen
 2. [QGIS] METABHF als CSV erstellen (manueller Schritt)
-3. CSV nach data/processed/metabhf.csv speichern
+3. CSV nach data/processed/QGIS_METABHF.csv speichern
 4. python process_delta_metabhf.py   # Dieses Skript ausführen
 
 Das Skript:
-- Prüft ob metabhf.csv in data/processed/ existiert
-- Kopiert CSV-Inhalt zu delta/metabhf (behält Original-Format)
-- Extrahiert ID-Paare aus dem Format "ID1 ID2 0\n*A Y"
+- Prüft ob QGIS_METABHF.csv in data/processed/ existiert
+- Kopiert CSV-Inhalt zu delta/METABHF (behält Original-Format)
+- Extrahiert ID-Paare aus dem Format "ID1 ID2 002\n*A Y"
 - Fügt am Ende Einträge im Format "ID2 : ID1" hinzu
+- Optional: Zipped alle Delta-Dateien
 """
 import os
-import csv
+from src.transfer_stops.etl.load import zip_delta_files
 
-
-def process_metabhf_file(csv_path='data/processed/METABHF.csv', output_path='data/processed/delta/METABHF'):
+def process_metabhf_file(csv_path='data/processed/QGIS_METABHF.csv', output_path='data/processed/delta/METABHF'):
     """
     Verarbeitet METABHF.csv:
     1. Prüft ob CSV existiert
@@ -108,3 +108,16 @@ if __name__ == "__main__":
     
     if not success:
         exit(1)
+    
+    # Frage ob Delta-Dateien gezippt werden sollen
+    print("\n⚠️  Möchtest du die Delta-Dateien jetzt zippen?")
+    response = input("Delta-Dateien zippen? (ja/nein): ").strip().lower()
+    
+    if response in ['ja', 'j', 'yes', 'y']:
+        print("\n" + "=" * 60)
+        print("Zippe Delta-Dateien...")
+        print("=" * 60)
+        zip_delta_files()
+        print("=" * 60)
+    else:
+        print("\n✅ Delta-Dateien werden nicht gezippt.")
