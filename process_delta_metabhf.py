@@ -99,6 +99,87 @@ def process_metabhf_file(csv_path='data/processed/QGIS_METABHF.csv', output_path
     return True
 
 
+def create_umsteigb_file(bahnhof_path='data/processed/delta/BAHNHOF', 
+                         metabhf_path='data/processed/delta/METABHF',
+                         output_path='data/processed/delta/UMSTEIGB'):
+    """
+    Erstellt UMSTEIGB-Datei aus BAHNHOF und METABHF.
+    
+    Format: ID NUMMER NUMMER NAME
+    - ID: aus BAHNHOF
+    - NUMMER: dritte Zahl aus METABHF-Zeilen wo die ID vorkommt (2x wiederholt)
+    - NAME: aus BAHNHOF ohne $<1> am Ende
+    """
+    # Prüfe ob benötigte Dateien existieren
+    if not os.path.exists(bahnhof_path):
+        print(f"\n❌ FEHLER: {bahnhof_path} existiert nicht!")
+        return False
+    
+    if not os.path.exists(metabhf_path):
+        print(f"\n❌ FEHLER: {metabhf_path} existiert nicht!")
+        return False
+    
+    print(f"\n=== Erstelle UMSTEIGB-Datei ===")
+    
+    # 1. Lese BAHNHOF und extrahiere ID -> Name Mapping
+    id_to_name = {}
+    with open(bahnhof_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Format: "ID      NAME$<1>"
+            parts = line.split(None, 1)  # Split bei erstem Whitespace
+            if len(parts) == 2:
+                id_str = parts[0].strip()
+                name_with_suffix = parts[1].strip()
+                
+                # Entferne $<1> am Ende
+                name = name_with_suffix.replace('$<1>', '').strip()
+                id_to_name[id_str] = name
+    
+    # 2. Lese METABHF und finde dritte Zahl für jede ID
+    id_to_number = {}
+    with open(metabhf_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('*'):
+                continue
+            
+            # Format: "ID1 ID2 003" oder "ID2 : ID1"
+            parts = line.split()
+            if len(parts) >= 3 and parts[1] != ':':
+                first_id = parts[0].strip()
+                third_number = parts[2].strip()
+                
+                # Speichere nur wenn es eine unserer IDs ist
+                if first_id in id_to_name:
+                    # Nehme immer den ersten gefundenen Wert (falls ID mehrmals vorkommt)
+                    if first_id not in id_to_number:
+                        # Nehme nur die letzten 2 Ziffern
+                        id_to_number[first_id] = third_number[-2:] if len(third_number) >= 2 else third_number.zfill(2)
+    
+    # 3. Erstelle UMSTEIGB-Einträge
+    entries = []
+        
+    # Sortierte IDs für konsistente Ausgabe
+    for id_str in sorted(id_to_name.keys()):
+        name = id_to_name[id_str]
+        number = id_to_number.get(id_str, "00")  # Default: 00 falls nicht in METABHF
+        
+        entries.append(f"{id_str} {number} {number} {name}")
+    
+    # 4. Schreibe UMSTEIGB-Datei
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(entries) + '\n')
+    
+    print(f"✅ UMSTEIGB erstellt: {len(entries)-1} Einträge (+ Header)")
+    print(f"✅ {output_path} erfolgreich erstellt")
+    return True
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("METABHF Post-Processing")
@@ -108,6 +189,16 @@ if __name__ == "__main__":
     
     if not success:
         exit(1)
+    
+    # Erstelle UMSTEIGB-Datei
+    print("\n" + "=" * 60)
+    print("Erstelle UMSTEIGB-Datei...")
+    print("=" * 60)
+    umsteigb_success = create_umsteigb_file()
+    print("=" * 60)
+    
+    if not umsteigb_success:
+        print("\n⚠️  UMSTEIGB konnte nicht erstellt werden")
     
     # Frage ob Delta-Dateien gezippt werden sollen
     print("\n⚠️  Möchtest du die Delta-Dateien jetzt zippen?")

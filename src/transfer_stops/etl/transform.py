@@ -73,7 +73,7 @@ def check_and_add_new_coords(df, transportProvider: str):
         mode = 'a' if os.path.exists(output_file_path) else 'w'
         with open(output_file_path, mode, encoding='utf-8') as f:
             for (lon, lat, name) in to_add:
-                f.write(f"{lon:>11.6f}{lat:>11.6f}    % {name} [{transportProvider}]\n")
+                f.write(f"{lon:>11.6f}{lat:>11.6f} 0      % {name} [{transportProvider}]\n")
         print(f"✅ {len(to_add)} neue Koordinaten von {transportProvider} gesammelt")
     else:
         print(f"ℹ️ Keine neuen Koordinaten von {transportProvider}")
@@ -267,7 +267,7 @@ def assign_ids_to_delta(file_path: str = 'data/processed/delta/BFKOORD_WGS'):
     # Schreibe mit IDs zurück
     with open(file_path, 'w', encoding='utf-8') as f:
         for entry in entries_with_ids:
-            f.write(f"{entry['id']:<8}{entry['lon']:>11.6f}{entry['lat']:>11.6f}{'':>5}    % {entry['name']}\n")
+            f.write(f"{entry['id']:<8}{entry['lon']:>11.6f}{entry['lat']:>11.6f} 0      % {entry['name']}\n")
     
     print(f"✅ IDs vergeben: {len(entries_with_ids)} Einträge")
 

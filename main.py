@@ -145,7 +145,7 @@ def main():
     
     # Frage ob Daten gelöscht werden sollen
     print("\n⚠️  Möchtest du die generierten Rohdaten und Output-Dateien löschen?")
-    print("   - Alle Dateien in data/processed/ (ausser METABHF)")
+    print("   - Alle Dateien in data/processed/ (ausser QGIS-METABHF.csv)")
     print("   - Alle Dateien in data/raw/")
     print()
     
