@@ -3,7 +3,7 @@ from transfer_stops import config
 import math
 import os
 import csv
-
+from transfer_stops.utils import haversine_distance
 
 def standardize_lat_lon(df, lat_col, lon_col):
     """Benennt Lat/Lon-Spalten zu 'lat' und 'lon' um."""
@@ -16,10 +16,10 @@ def standardize_lat_lon(df, lat_col, lon_col):
     return df
 
 
-def drop_columns(df, colnames: list, output_path: str):
-    """Entfernt angegebene Spalten und speichert DataFrame als CSV."""
+def drop_columns(df, colnames: list):
+    """Entfernt angegebene Spalten (keine Datei-Operation mehr)."""
     df.drop(columns=[col for col in colnames if col in df.columns], inplace=True)
-    df.to_csv(output_path, index=False)
+    return df
 
 
 def check_and_add_new_coords(df, transportProvider: str):
@@ -27,7 +27,7 @@ def check_and_add_new_coords(df, transportProvider: str):
     def format_coord(lat, lon):
         return f"{lat:.8f},{lon:.8f}"
     
-    existing_coords_path = 'data/raw/oevSammlung/BFKOORD_WGS'
+    existing_coords_path = config.PATHS['oev_bfkoord_wgs']
     existing_coords = set()
     
     with open(existing_coords_path, 'r', encoding='utf-8') as f:
@@ -40,8 +40,8 @@ def check_and_add_new_coords(df, transportProvider: str):
                 except ValueError:
                     continue
 
-    os.makedirs("data/processed/delta", exist_ok=True)
-    output_file_path = os.path.join("data/processed/delta", "BFKOORD_WGS")
+    os.makedirs(config.PATHS['delta_dir'], exist_ok=True)
+    output_file_path = config.PATHS['delta_bfkoord_wgs']
     
     new_coords = set()
     if os.path.exists(output_file_path):
@@ -73,7 +73,7 @@ def check_and_add_new_coords(df, transportProvider: str):
         mode = 'a' if os.path.exists(output_file_path) else 'w'
         with open(output_file_path, mode, encoding='utf-8') as f:
             for (lon, lat, name) in to_add:
-                f.write(f"{lon:>11.6f}{lat:>11.6f} 0      % {name} [{transportProvider}]\n")
+                f.write(f"{lon:>11.6f}{lat:>11.6f}         % {name} [{transportProvider}]\n")
         print(f"✅ {len(to_add)} neue Koordinaten von {transportProvider} gesammelt")
     else:
         print(f"ℹ️ Keine neuen Koordinaten von {transportProvider}")
@@ -118,32 +118,19 @@ def bfkoord_wgs_to_csv(input_path: str, output_path: str):
 
 def convert_all_bfkoord_to_csv():
     """Konvertiert delta/BFKOORD_WGS und oevSammlung/BFKOORD_WGS zu CSV."""
-    bfkoord_wgs_to_csv('data/raw/oevSammlung/BFKOORD_WGS', 'data/processed/OEV_BFKOORD_WGS_KOMMAGETRENNT.csv')
-    bfkoord_wgs_to_csv('data/processed/delta/BFKOORD_WGS', 'data/processed/BFKOORD_WGS_KOMMAGETRENNT.csv')
+    bfkoord_wgs_to_csv(config.PATHS['oev_bfkoord_wgs'], config.PATHS['oev_bfkoord_wgs_csv'])
+    bfkoord_wgs_to_csv(config.PATHS['delta_bfkoord_wgs'], config.PATHS['bfkoord_wgs_csv'])
 
 
-def clean_delta_bfkoord_wgs(file_path: str = 'data/processed/delta/BFKOORD_WGS',
+def clean_delta_bfkoord_wgs(file_path: str = None,
                               distance_threshold_meters: float = 100):
     """
     Bereinigt BFKOORD_WGS in-place:
     1. Entfernt FlixTrain-Einträge
     2. Entfernt räumlich nahe Duplikate (< distance_threshold_meters)
     """
-    def haversine_distance(lat1, lon1, lat2, lon2):
-        """
-        Berechnet die kürzeste Distanz zwischen zwei GPS-Koordinaten auf der Erdkugel.
-        
-        Die Haversine-Formel berücksichtigt die Erdkrümmung und berechnet die Luftlinie
-        entlang der Erdoberfläche (Großkreis-Distanz). Benannt nach der Haversine-Funktion
-        (hav(θ) = sin²(θ/2)), die numerisch stabiler ist als andere trigonometrische Formeln.
-        
-        Returns: Distanz in Metern
-        """
-        R = 6371000  # Erdradius in Metern
-        phi1, phi2 = math.radians(lat1), math.radians(lat2)
-        delta_phi, delta_lambda = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
-        a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
-        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    if file_path is None:
+        file_path = config.PATHS['delta_bfkoord_wgs']
     
     if not os.path.exists(file_path):
         print(f"⚠️ Datei {file_path} existiert nicht")
@@ -218,15 +205,17 @@ def clean_delta_bfkoord_wgs(file_path: str = 'data/processed/delta/BFKOORD_WGS',
             print(f"     ... und {len(removed_duplicates) - 10} weitere")
 
 
-def assign_ids_to_delta(file_path: str = 'data/processed/delta/BFKOORD_WGS'):
+def assign_ids_to_delta(file_path: str = None):
     """Vergibt IDs an bereinigte Koordinaten in BFKOORD_WGS (in-place)."""
+    if file_path is None:
+        file_path = config.PATHS['delta_bfkoord_wgs']
     if not os.path.exists(file_path):
         print(f"⚠️ Datei {file_path} existiert nicht")
         return
     
     # Sammle bereits verwendete IDs aus BFKOORD_WGS
     used_ids = set()
-    with open('data/raw/oevSammlung/BFKOORD_WGS', 'r', encoding='utf-8') as f:
+    with open(config.PATHS['oev_bfkoord_wgs'], 'r', encoding='utf-8') as f:
         for line in f:
             parts = line.strip().split()
             if parts:
@@ -267,11 +256,82 @@ def assign_ids_to_delta(file_path: str = 'data/processed/delta/BFKOORD_WGS'):
     # Schreibe mit IDs zurück
     with open(file_path, 'w', encoding='utf-8') as f:
         for entry in entries_with_ids:
-            f.write(f"{entry['id']:<8}{entry['lon']:>11.6f}{entry['lat']:>11.6f} 0      % {entry['name']}\n")
+            f.write(f"{entry['id']:<8}{entry['lon']:>11.6f}{entry['lat']:>11.6f}         % {entry['name']}\n")
     
     print(f"✅ IDs vergeben: {len(entries_with_ids)} Einträge")
 
-
+def create_umsteigb_file(bahnhof_path=None, 
+                         metabhf_path=None,
+                         output_path=None):
+    """
+    Erstellt UMSTEIGB-Datei aus BAHNHOF und METABHF.
+    
+    Format: ID NUMMER NUMMER NAME
+    - ID: aus BAHNHOF
+    - NUMMER: dritte Zahl aus METABHF-Zeilen wo die ID vorkommt (2x wiederholt)
+    - NAME: aus BAHNHOF ohne $<1> am Ende
+    """
+    if bahnhof_path is None:
+        bahnhof_path = config.PATHS['delta_bahnhof']
+    if metabhf_path is None:
+        metabhf_path = config.PATHS['delta_metabhf']
+    if output_path is None:
+        output_path = config.PATHS['delta_umsteigb']
+    
+    if not os.path.exists(bahnhof_path):
+        print(f"\n❌ FEHLER: {bahnhof_path} existiert nicht!")
+        return False
+    
+    if not os.path.exists(metabhf_path):
+        print(f"\n❌ FEHLER: {metabhf_path} existiert nicht!")
+        return False
+    
+    print(f"\n=== Erstelle UMSTEIGB-Datei ===")
+    
+    id_to_name = {}
+    with open(bahnhof_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            
+            parts = line.split(None, 1)
+            if len(parts) == 2:
+                id_str = parts[0].strip()
+                name_with_suffix = parts[1].strip()
+                name = name_with_suffix.replace('$<1>', '').strip()
+                id_to_name[id_str] = name
+    
+    id_to_number = {}
+    with open(metabhf_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('*'):
+                continue
+            
+            parts = line.split()
+            if len(parts) >= 3 and parts[1] != ':':
+                first_id = parts[0].strip()
+                third_number = parts[2].strip()
+                
+                if first_id in id_to_name:
+                    if first_id not in id_to_number:
+                        id_to_number[first_id] = third_number[-2:] if len(third_number) >= 2 else third_number.zfill(2)
+    
+    entries = []
+        
+    for id_str in sorted(id_to_name.keys()):
+        name = id_to_name[id_str]
+        number = id_to_number.get(id_str, "00")
+        entries.append(f"{id_str} {number} {number} {name}")
+    
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(entries) + '\n')
+    
+    print(f"✅ UMSTEIGB erstellt: {len(entries)} Einträge")
+    print(f"✅ {output_path} erfolgreich erstellt")
+    return True
 
 
 

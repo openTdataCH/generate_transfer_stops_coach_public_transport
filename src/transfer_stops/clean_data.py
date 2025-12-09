@@ -1,6 +1,16 @@
 """Löscht heruntergeladene Rohdaten und generierte Outputs."""
 import os
 import shutil
+import sys
+from pathlib import Path
+
+# src-Verzeichnis zu sys.path hinzufügen
+SRC_DIR = Path(__file__).resolve().parents[1]  # .../src
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from transfer_stops import config
+
 
 
 def clean_data():
@@ -41,7 +51,7 @@ def clean_data():
             try:
                 if os.path.isfile(file_path):
                     # Überspringe QGIS_METABHF.csv im processed/ Ordner
-                    if filename == 'QGIS_METABHF.csv':
+                    if filename == os.path.basename(config.PATHS['qgis_metabhf_csv']):
                         print(f"ℹ️  Übersprungen: {file_path}")
                         continue
                     os.remove(file_path)

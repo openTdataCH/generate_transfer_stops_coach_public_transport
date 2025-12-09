@@ -126,8 +126,10 @@ def download_all_providers(providers):
 
 def extract_swiss_stops_csv(input_path: str, output_path: str, provider_name: str, 
                             stop_lat: str, stop_long: str, 
-                            geojson_path: str = 'data\\external\\swissBOUNDARIES3D_1_5_LV95_LN02.gpkg'):
+                            geojson_path: str = None):
     """Liest CSV, filtert Schweizer Haltestellen und schreibt Ergebnis."""
+    if geojson_path is None:
+        geojson_path = config.PATHS['swiss_boundaries']
     df = pd.read_csv(input_path)
     df[stop_lat] = df[stop_lat].astype(float)
     df[stop_long] = df[stop_long].astype(float)
@@ -147,6 +149,9 @@ def extract_swiss_stops_csv(input_path: str, output_path: str, provider_name: st
     mask = gdf_points.geometry.apply(lambda pt: swiss_landesgebiet.contains(pt).any())
     swiss_stops_df = gdf_points[mask].copy()
     swiss_stops_df['provider'] = provider_name
-    swiss_stops_df.to_csv(output_path, index=False)
+    
+    # Append mode: Füge Header hinzu wenn Datei nicht existiert
+    write_header = not os.path.exists(output_path)
+    swiss_stops_df.to_csv(output_path, mode='a', index=False, header=write_header)
     
     return swiss_stops_df

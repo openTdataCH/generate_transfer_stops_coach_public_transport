@@ -5,17 +5,21 @@ Main entry point for the transfer stops generation.
 import sys
 import os
 
+
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.transfer_stops.etl.extract import download_all_providers, download_oev_sammlung, extract_swiss_stops_csv
 from src.transfer_stops.etl.transform import (
     drop_columns, standardize_lat_lon, check_and_add_new_coords, 
-    clean_delta_bfkoord_wgs, assign_ids_to_delta, convert_all_bfkoord_to_csv
+    clean_delta_bfkoord_wgs, assign_ids_to_delta, convert_all_bfkoord_to_csv, 
+    create_umsteigb_file
 )
-from src.transfer_stops.etl.load import write_bahnhof_format
+from src.transfer_stops.create_metabhf.create_osm_metabhf import create_osm_metabhf
+from src.transfer_stops.etl.load import write_bahnhof_format, zip_delta_files
 from src.transfer_stops import config
 from src.transfer_stops.clean_data import clean_data
+
 
 
 def process_transport_provider(provider_config):
@@ -34,7 +38,7 @@ def process_transport_provider(provider_config):
 
     # Transform
     print("Transformiere Daten...")
-    drop_columns(df, provider_config['columns_to_drop'], provider_config['output_path'])
+    df = drop_columns(df, provider_config['columns_to_drop'])
     df = standardize_lat_lon(df, provider_config['lat'], provider_config['lon'])
     check_and_add_new_coords(df, provider_config['name'])
     
@@ -72,22 +76,17 @@ def main():
     print("=" * 50)
     
     output_files = [
-        "data/processed/delta/BFKOORD_WGS",
-        "data/processed/delta/BAHNHOF",
-        "data/processed/BFKOORD_WGS_KOMMAGETRENNT.csv",
-        "data/processed/OEV_BFKOORD_WGS_KOMMAGETRENNT.csv"
+        config.PATHS['delta_bfkoord_wgs'],
+        config.PATHS['delta_bahnhof'],
+        config.PATHS['bfkoord_wgs_csv'],
+        config.PATHS['oev_bfkoord_wgs_csv'],
+        config.PATHS['provider_stops']
     ]
     
     for output_file in output_files:
         if os.path.exists(output_file):
             os.remove(output_file)
             print(f"🗑️ Gelöscht: {output_file}")
-    
-    # Also delete provider-specific output files
-    for provider in config.providers:
-        if os.path.exists(provider['output_path']):
-            os.remove(provider['output_path'])
-            print(f"🗑️ Gelöscht: {provider['output_path']}")
 
     # Process all providers (recreate everything)
     print("\n" + "=" * 50)
@@ -137,11 +136,41 @@ def main():
             write_bahnhof_format(provider['name'])
         except Exception as e:
             print(f"❌ Fehler bei BAHNHOF-Format für {provider['name']}: {e}")
-    
+
+    # Erstellt METABHF und UMSTEIGB
+
+    print("Erstelle METABHF aus OSM-Daten...")
+    print("=" * 50)
+    try:
+        create_osm_metabhf()
+    except Exception as e:
+        print(f"❌ Fehler bei METABHF-Erstellung: {e}")
+        
+    # Erstelle UMSTEIGB
+    print("\n" + "=" * 50)
+    print("Erstelle UMSTEIGB-Datei...")
+    print("=" * 50)
+    try:
+        create_umsteigb_file()
+    except Exception as e:
+        print(f"❌ Fehler bei UMSTEIGB-Erstellung: {e}")
+
     print("\n" + "=" * 50)
     print("✅ ETL-Pipeline abgeschlossen!")
     print("=" * 50)
     
+    # Delta-Dateien zippen
+    print("\n⚠️  Möchtest du die Delta-Dateien jetzt zippen?")
+    response = input("Delta-Dateien zippen? (ja/nein): ").strip().lower()
+    
+    if response in ['ja', 'j', 'yes', 'y']:
+        print("\n" + "=" * 60)
+        print("Zippe Delta-Dateien...")
+        print("=" * 60)
+        zip_delta_files()
+        print("=" * 60)
+    else:
+        print("\n✅ Delta-Dateien werden nicht gezippt.")
     
     # Frage ob Daten gelöscht werden sollen
     print("\n⚠️  Möchtest du die generierten Rohdaten und Output-Dateien löschen?")

@@ -24,6 +24,7 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern und ÖV-Referenzd
 - **BAHNHOF Format**: `ID (8 Zeichen linksbündig) + 5 Leerzeichen + NAME$<1>` - Legacy-Format für ÖV-Systeme
 - **GTFS (General Transit Feed Specification)**: [gtfs.org](https://gtfs.org/) - Standard für öffentliche Verkehrsdaten
 - **METABHF Format**: Umsteigebeziehungen zwischen Haltestellen im Format `ID1 ID2 Distanz` bzw. `ID2 : ID1`
+- **UMSTEIGB Format**: `ID NUM NUM NAME` - Umsteigezeiten zwischen Haltestellen, NUM = letzte 2 Ziffern der Gehzeit in Minuten aus METABHF
 
 ### Tools & Algorithmen
 - **QGIS**: [qgis.org](https://qgis.org/) - Open Source GIS-Software für manuelle Datenverarbeitung
@@ -44,25 +45,23 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern und ÖV-Referenzd
 
 ```
 ├─ main.py                          # Haupteinstiegspunkt der Pipeline
-├─ process_delta_metabhf.py         # Nachbearbeitung von METABHF CSV zu delta-Format
 ├─ requirements.txt                 # Python-Abhängigkeiten
 ├─ README.md
 ├─ .gitignore
-├─ cache/                           # Cache für MD5-Hashes (automatisch erstellt)
 ├─ data/
 │  ├─ external/                     # Externe Referenzdaten
-│  │  ├─ swissBOUNDARIES3D_1_5_LV95_LN02.gpkg  # Schweizer Landesgrenzen (GeoPackage)
+│  │  └─ swissBOUNDARIES3D_1_5_LV95_LN02.gpkg  # Schweizer Landesgrenzen (GeoPackage)
 │  ├─ processed/                    # Verarbeitete Output-Dateien
 │  │  ├─ delta/                     # Neue/geänderte Daten
 │  │  │  ├─ BFKOORD_WGS             # Neue Haltestellen mit IDs
 │  │  │  ├─ BAHNHOF                 # BAHNHOF-Format Output
-│  │  │  └─ METABHF                 # METABHF mit Umsteigebeziehungen
+│  │  │  ├─ METABHF                 # METABHF mit Umsteigebeziehungen
+│  │  │  └─ UMSTEIGB                # Umsteigezeiten
 │  │  ├─ delta.zip                  # Gezippte Delta-Dateien für Weitergabe
-│  │  ├─ BFKOORD_WGS_KOMMAGETRENNT.csv  # CSV der neuen Haltestellen
-│  │  ├─ QGIS_METABHF.csv                # METABHF aus QGIS (manuell erstellt)
-│  │  ├─ OEV_BFKOORD_WGS_KOMMAGETRENNT.csv  # ÖV-Referenzkoordinaten als CSV
-│  │  ├─ Flixbus_stops.csv          # Gefilterte Schweizer Flixbus-Haltestellen
-│  │  └─ BlaBlaCar_stops.csv        # Gefilterte Schweizer BlaBlaCar-Haltestellen
+│  │  ├─ provider_stops             # Konsolidierte Haltestellen aller Provider
+│  │  ├─ BFKOORD_WGS_KOMMAGETRENNT.csv      # CSV der neuen Haltestellen
+│  │  ├─ QGIS_METABHF.csv                   # METABHF aus QGIS (manuell erstellt)
+│  │  └─ OEV_BFKOORD_WGS_KOMMAGETRENNT.csv  # ÖV-Referenzkoordinaten als CSV
 │  └─ raw/                          # Rohdaten (automatisch heruntergeladen)
 │     ├─ BlaBlaCar/
 │     │  └─ stops.txt               # GTFS stops.txt
@@ -76,15 +75,23 @@ Das Projekt lädt automatisch GTFS-Daten von Fernbus-Anbietern und ÖV-Referenzd
 └─ src/
    └─ transfer_stops/
       ├─ __init__.py
-      ├─ config.py                  # Konfiguration (Provider-URLs, IDs)
+      ├─ config.py                  # Zentrale Konfiguration (Provider-URLs, IDs, Pfade)
       ├─ clean_data.py              # Hilfsskript zum Löschen generierter Daten*
-      └─ etl/
-         ├─ extract.py              # Download (ÖV + GTFS) & Schweiz-Filterung
-         ├─ transform.py            # Datenbereinigung & ID-Vergabe
-         └─ load.py                 # BAHNHOF-Format Generierung & ZIP-Erstellung
+      ├─ etl/                       # Extract-Transform-Load Module
+      │  ├─ __init__.py
+      │  ├─ extract.py              # Download (ÖV + GTFS) & Schweiz-Filterung
+      │  ├─ transform.py            # Datenbereinigung, ID-Vergabe & UMSTEIGB
+      │  └─ load.py                 # BAHNHOF-Format Generierung & ZIP-Erstellung
+      └─ create_metabhf/            # METABHF-Erstellung (OSM & QGIS)
+         ├─ __init__.py
+         ├─ create_osm_metabhf.py   # OSM-basierte METABHF-Generierung
+         └─ process_qgis_metabhf.py # Nachbearbeitung von QGIS METABHF CSV**
 ```
 
-*`clean_data.py` ist ein temporäres Hilfsskript für Entwicklung/Testing, um generierte Daten schnell zu löschen und die Pipeline neu zu starten.
+**Hinweise:**
+- *`clean_data.py` ist ein Hilfsskript für Entwicklung/Testing, um generierte Daten zu löschen
+- **`process_qgis_metabhf.py` ist ein Standalone-Script für QGIS-basierte METABHF-Verarbeitung
+- Alle Pfade sind zentral in `config.py` konfiguriert
 
 ## Installation
 
@@ -127,63 +134,72 @@ python main.py
    - Zweck: Eindeutige Identifikation für ÖV-Systeme (siehe "ID-Vergabe" oben)
    - Wichtig: IDs werden NACH Bereinigung vergeben um Lücken zu vermeiden
 
-8. **Output-Generierung** - Erstellt CSV und BAHNHOF-Format Dateien
+8. **CSV-Export** - Erstellt kommagetrennte CSV-Dateien für beide BFKOORD_WGS-Dateien
+   - Zweck: Einfacher Import in QGIS
+
+9. **BAHNHOF-Format** - Konvertiert zu Legacy-Format für ÖV-Systeme
    - Zweck: Kompatibilität mit bestehenden ÖV-Import-Systemen
 
-9. **METABHF-Verarbeitung (Manuell)** - Erstellt Umsteigebeziehungen in QGIS
-   - Zweck: Verbindung zwischen Fernbus-Haltestellen und nahegelegenen ÖV-Haltestellen
-   - Grund für manuelle Verarbeitung: Räumliche Nähe allein reicht nicht - nur sinnvolle Gehwege sollen erfasst werden
+10. **METABHF-Erstellung** - Automatische oder manuelle Generierung
+    - **Automatisch (OSM)**: Verwendet OSMnx für Walking-Distance-Berechnung zwischen Coach- und ÖV-Haltestellen
+      - Algorithmus: Findet nächste 3 ÖV-Haltestellen, berechnet Gehweg über Straßennetz, wählt kürzeste Route
+      - Distanz → Gehzeit (5 km/h) + 2 Minuten Puffer
+    - **Manuell (QGIS)**: Räumliche Analyse in QGIS für präzise Umsteigebeziehungen
+      - Workflow: QGIS → CSV Export → `process_qgis_metabhf.py` → delta/METABHF
 
-### METABHF Post-Processing (Manueller Schritt)
+11. **UMSTEIGB-Generierung** - Erstellt Umsteigezeiten aus BAHNHOF + METABHF
+    - Format: Siehe oben
+    - Zweck: Definition von Umsteigezeiten zwischen Haltestellen
 
-⚠️ **Hinweis**: Die Verarbeitung von METABHF-Daten erfolgt in einem separaten manuellen Schritt nach der ETL-Pipeline:
+12. **Delta-ZIP** - Optional: Packt alle Delta-Dateien für Weitergabe
+    - Enthält: BFKOORD_WGS, BAHNHOF, METABHF, UMSTEIGB
 
-1. Führe die automatische ETL-Pipeline aus: `python main.py`
-2. Führe die manuelle QGIS-Verarbeitung durch
-3. Erstelle `metabhf.csv` manuell in QGIS
-4. Kopiere `metabhf.csv` nach `data/processed/
-5. Führe das Post-Processing-Skript aus: `python process_delta_metabhf.py`
+### METABHF-Verarbeitung
 
-Das `process_delta_metabhf.py` Skript entfernt Sonderzeichen und erstellt ID-Paare im Format "ID2 : ID1".
+Die Pipeline bietet zwei Workflows für METABHF-Erstellung:
 
-## Datenbereinigung
+#### Option 1: Automatisch via OSM (Empfohlen)
+Wird automatisch in `main.py` ausgeführt. Verwendet OpenStreetMap-Daten für Walking-Distance-Berechnung.
 
-Die Pipeline führt automatisch folgende Bereinigungen durch:
+#### Option 2: Manuell via QGIS
 
-- **FlixTrain-Filter**: Entfernt alle Einträge mit "FlixTrain" im Namen (case-insensitive)
-- **Räumliche Duplikate**: Entfernt Haltestellen die näher als 100m zueinander liegen (Haversine-Formel)
-- **Duplikatsprüfung**: Vergleicht mit bestehenden ÖV-Daten um Duplikate zu vermeiden
+⚠️ **Hinweis**: Manuelle QGIS-Verarbeitung erfolgt als separater Workflow:
 
-**Wichtig**: IDs werden erst NACH der Bereinigung vergeben, um keine ID-Lücken zu erzeugen.
+1. Führe die ETL-Pipeline aus: `python main.py`
+2. Öffne QGIS und führe räumliche Analyse durch
+3. Exportiere METABHF als CSV nach `data/processed/QGIS_METABHF.csv`
+4. Führe Post-Processing aus: `python src/transfer_stops/create_metabhf/process_qgis_metabhf.py`
+   - ⚠️ Achtung: Überschreibt existierende `delta/METABHF` und `delta/UMSTEIGB` Dateien
+
+Das Skript:
+- Liest QGIS CSV und entfernt Sonderzeichen
+- Kopiert Original-Format (ID1 ID2 000 / *A Y)
+- Gruppiert nach Ziel-ID: `ID2 : ID1a, ID1b, ...`
+- Erstellt automatisch UMSTEIGB (überschreibt vorhandene Datei)
+- Optional: Zipped Delta-Dateien
 
 ## Ausgabedateien
 
-### BFKOORD_WGS Format
-```
-ID       LON        LAT         % NAME [PROVIDER]
-1700000    7.348153  46.223220    % Sion (Rue Traversière) [Flixbus]
-```
-
-### BAHNHOF Format
-```
-ID         NAME$<1>
-1700000    Sion (Rue Traversière)$<1>
-```
-
 ### Generierte Dateien
-- `delta/bfkoord_wgs` - Neue Haltestellen mit Koordinaten und IDs
-- `delta/bfkoord_wgs_kommagetrennt.csv` - CSV-Export der neuen Haltestellen
-- `delta/bahnhof_format` - BAHNHOF-Format für ÖV-Systeme
-- `delta/metabhf.txt` - METABHF ID-Paare (manuell erstellt in QGIS)
-- `BFKOORD_WGS_kommagetrennt.csv` - Alle ÖV-Referenz-Koordinaten als CSV
-- `{Provider}_stops.csv` - Gefilterte Schweizer Haltestellen pro Provider
+- `data/processed/delta/BFKOORD_WGS` - Neue Haltestellen mit Koordinaten und IDs
+- `data/processed/delta/BAHNHOF` - BAHNHOF-Format für ÖV-Systeme
+- `data/processed/delta/METABHF` - Umsteigebeziehungen (OSM oder QGIS)
+- `data/processed/delta/UMSTEIGB` - Umsteigezeiten (automatisch generiert)
+- `data/processed/BFKOORD_WGS_KOMMAGETRENNT.csv` - CSV der neuen Haltestellen
+- `data/processed/OEV_BFKOORD_WGS_KOMMAGETRENNT.csv` - ÖV-Referenz-Koordinaten als CSV
+- `data/processed/provider_stops` - Konsolidierte Schweizer Haltestellen aller Provider
+- `data/processed/delta.zip` - Gezippte Delta-Dateien (BFKOORD_WGS, BAHNHOF, METABHF, UMSTEIGB)
 
 ## Konfiguration
 
 `src/transfer_stops/config.py`:
 - `BEGINNING_ID`: Start-ID für neue Haltestellen (Standard: 1700000)
 - `OEV_SAMMLUNG_URL`: Permalink zu ÖV-Referenzdaten
-- `providers`: Liste der Transport-Provider mit GTFS-URLs
+- `oev_files`: Liste der ÖV-Dateien (BAHNHOF, BFKOORD_WGS, METABHF, UMSTEIGB)
+- `PATHS`: Dictionary mit allen Dateipfaden (zentrale Pfad-Verwaltung)
+- `providers`: Liste der Transport-Provider mit GTFS-URLs und Konfiguration
+
+**Pfad-Verwaltung**: Alle Dateipfade sind zentral in `config.PATHS` definiert, um hardcodierte Pfade zu vermeiden.
 
 ## Clean-Up
 

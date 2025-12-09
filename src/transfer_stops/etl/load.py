@@ -6,8 +6,9 @@ import re
 
 def write_bahnhof_format(transportProvider: str):
     """Extrahiert Einträge eines Providers und schreibt sie im BAHNHOF-Format."""
-    input_file = "data/processed/delta/BFKOORD_WGS"
-    output_file = "data/processed/delta/BAHNHOF"
+    from transfer_stops import config
+    input_file = config.PATHS['delta_bfkoord_wgs']
+    output_file = config.PATHS['delta_bahnhof']
 
     if not os.path.exists(input_file):
         print(f"Datei nicht gefunden: {input_file}")
@@ -58,9 +59,10 @@ def zip_delta_files():
     Zipped alle Dateien im delta/ Ordner.
     Prüft zuerst ob metabhf existiert und korrekt formatiert ist.
     """
-    delta_dir = "data/processed/delta"
-    metabhf_path = os.path.join(delta_dir, "metabhf")
-    output_zip = "data/processed/delta.zip"
+    from transfer_stops import config
+    delta_dir = config.PATHS['delta_dir']
+    metabhf_path = config.PATHS['delta_metabhf']
+    output_zip = config.PATHS['delta_zip']
     
     # Prüfe ob metabhf existiert
     if not os.path.exists(metabhf_path):
